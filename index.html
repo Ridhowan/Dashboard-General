@@ -1,0 +1,751 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>General Monitor · Perintis Perkasa Medan</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  :root{
+    --bg:#0C0E12; --panel:#16191F; --panel2:#1E222A; --panel3:#262B34; --line:#2A2F39;
+    --text:#E8EAEE; --dim:#8B919E; --dim2:#5E6472;
+    --red:#EB0A1E; --green:#2FBF71; --amber:#F2A33C; --blue:#4C9AFF; --purple:#9B7EDE; --teal:#2DD4BF;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;padding:18px 22px;min-height:100vh}
+  .hidden{display:none!important}
+  #uploadScreen{display:flex;align-items:center;justify-content:center;min-height:85vh}
+  .upbox{max-width:540px;width:100%;text-align:center}
+  .brand{display:inline-flex;align-items:center;gap:11px;margin-bottom:8px}
+  .brand .bar{width:11px;height:34px;background:var(--red);border-radius:2px}
+  .brand h1{font-size:28px;font-weight:800;letter-spacing:-.5px}
+  .upbox p.sub{color:var(--dim);font-size:14px;margin-bottom:24px}
+  #dropzone{border:2px dashed var(--line);border-radius:14px;padding:48px 24px;background:var(--panel);transition:all .15s}
+  #dropzone.drag{border-color:var(--red);background:rgba(235,10,30,.06)}
+  #dropzone .ico{font-size:42px;margin-bottom:10px}
+  #dropzone p{font-size:15px;margin-bottom:14px}
+  .btn-red{background:var(--red);color:#fff;padding:10px 22px;border-radius:8px;font-weight:700;font-size:14px;cursor:pointer;display:inline-block;border:none}
+  #dropzone small{color:var(--dim);font-size:12px;display:block;margin-top:14px}
+  #errMsg{color:var(--red);font-size:13px;margin-top:14px}
+  .head{display:flex;flex-wrap:wrap;align-items:center;gap:12px;margin-bottom:14px}
+  .head .bar{width:9px;height:30px;background:var(--red);border-radius:2px}
+  .head h1{font-size:21px;font-weight:800;letter-spacing:-.3px}
+  .head .tag{font-size:10px;font-weight:800;letter-spacing:.1em;background:var(--red);color:#fff;padding:3px 8px;border-radius:5px}
+  .head .meta{color:var(--dim);font-size:12px}
+  select,.btn-sec{background:var(--panel2);color:var(--text);border:1px solid var(--line);border-radius:8px;padding:8px 11px;font-size:13px;cursor:pointer}
+  select:focus{outline:1px solid var(--red)}
+  .nav{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:18px;border-bottom:1px solid var(--line);padding-bottom:14px}
+  .nav button{background:var(--panel2);color:var(--dim);border:none;border-radius:8px;padding:10px 18px;font-size:14px;font-weight:700;cursor:pointer;transition:.12s}
+  .nav button:hover{color:var(--text)}
+  .nav button.on{background:var(--red);color:#fff}
+  .filters{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:16px;align-items:center}
+  .filters .fl{font-size:11px;color:var(--dim2);text-transform:uppercase;letter-spacing:.06em;margin-right:-4px}
+  .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(155px,1fr));gap:12px;margin-bottom:16px}
+  .kpi{background:var(--panel);border:1px solid var(--line);border-radius:11px;padding:14px 16px;position:relative;overflow:hidden}
+  .kpi::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--accent,var(--dim2))}
+  .kpi .num{font-size:27px;font-weight:800;letter-spacing:-.5px;line-height:1.1}
+  .kpi .lbl{font-size:10.5px;color:var(--dim);text-transform:uppercase;letter-spacing:.07em;margin-top:5px;font-weight:600}
+  .kpi .sub2{font-size:11px;color:var(--dim);margin-top:3px}
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:11px;padding:16px}
+  .panel h2{font-size:12.5px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--dim);margin-bottom:12px;display:flex;align-items:center;gap:8px}
+  .mb{margin-bottom:16px}
+  #funnelBar{display:flex;height:36px;border-radius:8px;overflow:hidden;border:1px solid var(--line)}
+  #funnelBar div{display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#0C0E12;white-space:nowrap;transition:.2s}
+  #funnelNote{color:var(--dim);font-size:12px;margin-top:10px}
+  #funnelNote b{color:var(--amber)}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(310px,1fr));gap:16px;margin-bottom:16px}
+  .grid3{grid-template-columns:repeat(auto-fit,minmax(240px,1fr))}
+  .chartbox{position:relative;height:240px}
+  .chartbox.sm{height:200px}
+  .tabs{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-bottom:12px}
+  .tab{background:var(--panel2);color:var(--dim);border:none;border-radius:8px;padding:8px 14px;font-size:13px;font-weight:600;cursor:pointer}
+  .tab.on{background:var(--red);color:#fff}
+  .tabs .right{margin-left:auto}
+  .lnote{color:var(--dim);font-size:12px;margin-bottom:10px}
+  .twrap{overflow-x:auto;max-height:560px;overflow-y:auto}
+  table{width:100%;border-collapse:collapse;font-size:12.5px}
+  th{text-align:left;padding:8px 10px;color:var(--dim);border-bottom:1px solid var(--line);font-size:11px;text-transform:uppercase;letter-spacing:.05em;white-space:nowrap;position:sticky;top:0;background:var(--panel);z-index:1}
+  td{padding:7px 10px;border-bottom:1px solid var(--line)}
+  tr:hover td{background:var(--panel2)}
+  td.vin{font-family:monospace;font-size:11.5px}
+  td.nw{white-space:nowrap}
+  .badge{font-weight:700;font-size:10.5px;padding:2px 8px;border-radius:99px;color:#0C0E12;display:inline-block}
+  .mfunnel{display:flex;flex-direction:column;gap:8px}
+  .mstage{display:flex;align-items:center;gap:10px}
+  .mstage .mlbl{width:120px;font-size:12px;color:var(--dim);text-align:right;flex-shrink:0}
+  .mstage .mtrack{flex:1;background:var(--panel2);border-radius:6px;height:30px;position:relative;overflow:hidden}
+  .mstage .mfill{height:100%;border-radius:6px;display:flex;align-items:center;padding:0 10px;font-size:12px;font-weight:700;color:#0C0E12;min-width:fit-content;transition:.3s}
+  .mstage .mpct{width:115px;font-size:11px;color:var(--dim);flex-shrink:0}
+  .kgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:12px}
+  .kcard{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:14px}
+  .kcard .kt{font-size:12px;color:var(--dim);font-weight:700;text-transform:uppercase;letter-spacing:.06em}
+  .kcard .kn{font-size:24px;font-weight:800;margin:4px 0 8px}
+  .kcard .kbar{background:#0C0E12;border-radius:6px;height:10px;overflow:hidden;margin-bottom:8px}
+  .kcard .kfill{height:100%;border-radius:6px}
+  .kcard .ks{font-size:11.5px;color:var(--dim);line-height:1.5}
+  .kpace{display:inline-block;font-size:11px;font-weight:800;padding:2px 8px;border-radius:99px;color:#0C0E12;margin-top:6px}
+  .hgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
+  .hcard{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:14px;border-left:4px solid var(--accent,var(--dim2))}
+  .hcard .hn{font-size:14px;font-weight:800;margin-bottom:2px}
+  .hcard .hscore{font-size:30px;font-weight:800;letter-spacing:-1px;line-height:1}
+  .hcard .hsub{font-size:11px;color:var(--dim);margin-top:6px;line-height:1.6}
+  .hcard .hsub b{color:var(--text)}
+  .insight{background:linear-gradient(135deg,rgba(235,10,30,.08),rgba(76,154,255,.05));border:1px solid var(--line);border-radius:11px;padding:14px 16px;margin-bottom:16px}
+  .insight h2{color:var(--red)}
+  .insight ul{list-style:none;display:flex;flex-direction:column;gap:8px}
+  .insight li{font-size:13px;line-height:1.5;padding-left:22px;position:relative}
+  .insight li::before{content:"▶";position:absolute;left:0;color:var(--red);font-size:9px;top:4px}
+  .insight li b{color:var(--amber)}
+  footer{color:var(--dim2);font-size:11px;margin-top:18px;text-align:center;line-height:1.6}
+  .sptr{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:5px;vertical-align:middle}
+  ::-webkit-scrollbar{width:9px;height:9px}::-webkit-scrollbar-thumb{background:var(--panel3);border-radius:5px}::-webkit-scrollbar-track{background:transparent}
+</style>
+</head>
+<body>
+
+<div id="uploadScreen">
+  <div class="upbox">
+    <div class="brand"><div class="bar"></div><h1>General Monitor</h1></div>
+    <p class="sub">Perintis Perkasa Medan · Retensi · MRA Reminder · Performance Bengkel · Conquest</p>
+    <div id="dropzone">
+      <div class="ico">📊</div>
+      <p>Tarik file Excel <b>"update.xlsx"</b> ke sini</p>
+      <label class="btn-red">Pilih File
+        <input type="file" id="fileInput" accept=".xlsx,.xls" style="display:none">
+      </label>
+      <small>Data resmi dimuat otomatis bila tersedia. Upload manual hanya cadangan.<br>Semua data diproses di browser Anda — tidak diunggah ke server mana pun.</small>
+    </div>
+    <p id="errMsg"></p>
+  </div>
+</div>
+
+<div id="dash" class="hidden">
+  <div class="head">
+    <div class="bar"></div><h1>General Monitor</h1><span class="tag">ADVANCE</span>
+    <span class="meta" id="fileMeta"></span>
+    <button class="btn-sec" style="margin-left:auto" onclick="resetApp()">Ganti File</button>
+  </div>
+
+  <div class="nav">
+    <button id="nav-over" class="on" onclick="setView('over')">🎯 Ringkasan Eksekutif</button>
+    <button id="nav-ret" onclick="setView('ret')">📊 Retensi Customer</button>
+    <button id="nav-mra" onclick="setView('mra')">📞 MRA Reminder</button>
+    <button id="nav-perf" onclick="setView('perf')">🔧 Performance Bengkel</button>
+  </div>
+
+  <!-- ===== VIEW: OVERVIEW ===== -->
+  <div id="view-over">
+    <div class="insight panel mb">
+      <h2>⚡ Sorotan Hari Ini — Daging, Tanpa Bertele-tele</h2>
+      <ul id="insightList"></ul>
+    </div>
+    <div class="kpis" id="overKpi"></div>
+    <div class="grid">
+      <div class="panel"><h2>Komposisi Database Retensi</h2><div class="chartbox"><canvas id="cOStatus"></canvas></div></div>
+      <div class="panel"><h2>Urgensi Free Service (Exp Status)</h2><div class="chartbox"><canvas id="cOExp"></canvas></div></div>
+    </div>
+    <div class="panel mb">
+      <h2>🏥 Health Score per Cabang — Skor Retensi Tertimbang</h2>
+      <div class="hgrid" id="healthGrid"></div>
+      <p class="lnote" style="margin-top:10px">Skor = bobot Active (×1.0) + Sleeping (×0.4) − penalti Passive, dinormalisasi 0–100. Makin tinggi makin sehat retensinya.</p>
+    </div>
+  </div>
+
+  <!-- ===== VIEW: RETENSI ===== -->
+  <div id="view-ret" class="hidden">
+    <div class="filters">
+      <span class="fl">Filter</span>
+      <select id="fSource" onchange="render()">
+        <option value="ALL">Semua Sumber</option>
+        <option value="NCS">NCS (jual sendiri)</option>
+        <option value="Other Dealer">From Other Dealer</option>
+      </select>
+      <select id="fCabang" onchange="render()"><option value="ALL">Semua Cabang</option></select>
+      <select id="fCust" onchange="render()"><option value="ALL">Semua Tipe Customer</option></select>
+      <select id="fModel" onchange="render()"><option value="ALL">Semua Model</option></select>
+      <select id="fExp" onchange="render()"><option value="ALL">Semua Exp Status</option></select>
+    </div>
+    <div class="kpis" id="retKpi"></div>
+    <div class="panel mb">
+      <h2>Funnel Retensi</h2>
+      <div id="funnelBar"></div>
+      <p id="funnelNote"></p>
+    </div>
+    <div class="grid">
+      <div class="panel"><h2>Komposisi Status</h2><div class="chartbox"><canvas id="cStatus"></canvas></div></div>
+      <div class="panel"><h2>Unit Jatuh Tempo Servis per Bulan</h2><div class="chartbox"><canvas id="cDue"></canvas></div></div>
+      <div class="panel"><h2>Retensi per Cabang (Top 10)</h2><div class="chartbox"><canvas id="cCabang"></canvas></div></div>
+      <div class="panel"><h2>Punctuality — Disiplin Servis</h2><div class="chartbox"><canvas id="cPunc"></canvas></div></div>
+      <div class="panel"><h2>Top Model (Top 10)</h2><div class="chartbox"><canvas id="cModel"></canvas></div></div>
+      <div class="panel"><h2>Distribusi Reminder Priority</h2><div class="chartbox"><canvas id="cPrio"></canvas></div></div>
+    </div>
+    <div class="panel">
+      <div class="tabs">
+        <h2 style="margin:0 8px 0 0">Daftar Aksi (Call List)</h2>
+        <button class="tab on" data-tab="P1" onclick="setTab('P1')">Priority 1</button>
+        <button class="tab" data-tab="SLEEP" onclick="setTab('SLEEP')">Sleeping</button>
+        <button class="tab" data-tab="EXP" onclick="setTab('EXP')">Free Service Hampir Habis</button>
+        <button class="btn-sec right" onclick="downloadCSV()" style="font-weight:700">⬇ Unduh CSV</button>
+      </div>
+      <p id="listNote" class="lnote"></p>
+      <div class="twrap"><table>
+        <thead><tr><th>VIN</th><th>Sumber</th><th>Cabang</th><th>Model</th><th>Customer</th><th>Status</th><th>Punctual</th><th>Servis Terakhir</th><th>Next Job</th><th>Jatuh Tempo</th><th>Prio</th><th>Exp</th></tr></thead>
+        <tbody id="tbody"></tbody>
+      </table></div>
+    </div>
+  </div>
+
+  <!-- ===== VIEW: MRA ===== -->
+  <div id="view-mra" class="hidden">
+    <div class="kpis" id="mraKpi"></div>
+    <div class="panel mb">
+      <h2>Funnel Reminder MRA</h2>
+      <div class="mfunnel" id="mraFunnel"></div>
+    </div>
+    <div class="grid">
+      <div class="panel"><h2>Aktivitas Telpon per Hari</h2><div class="chartbox"><canvas id="cMTrend"></canvas></div></div>
+      <div class="panel"><h2>Top Alasan Tidak BOC</h2><div class="chartbox"><canvas id="cMReason"></canvas></div></div>
+      <div class="panel"><h2>Database per Kategori</h2><div class="chartbox"><canvas id="cMKat"></canvas></div></div>
+      <div class="panel"><h2>Progress Call per Kategori</h2><div class="chartbox"><canvas id="cMProg"></canvas></div></div>
+    </div>
+    <div class="panel">
+      <div class="tabs">
+        <h2 style="margin:0 8px 0 0">Daftar Kerja MRA</h2>
+        <button class="tab on" data-mtab="BOC" onclick="setMTab('BOC')">BOC Terjadwal</button>
+        <button class="tab" data-mtab="TODO" onclick="setMTab('TODO')">Prioritas Belum Ditelpon</button>
+        <button class="btn-sec right" onclick="downloadMCSV()" style="font-weight:700">⬇ Unduh CSV</button>
+      </div>
+      <p id="mListNote" class="lnote"></p>
+      <div class="twrap"><table>
+        <thead><tr><th>No. Polisi</th><th>Nama</th><th>Model</th><th>Kategori</th><th>Prio</th><th>Next SBE</th><th>Tgl Reminder</th><th>Tgl BOC</th><th>Keterangan</th></tr></thead>
+        <tbody id="mtbody"></tbody>
+      </table></div>
+    </div>
+  </div>
+
+  <!-- ===== VIEW: PERFORMANCE ===== -->
+  <div id="view-perf" class="hidden">
+    <div class="kpis" id="perfKpi"></div>
+    <div class="panel mb" id="kpiCabPanel">
+      <h2>KPI Utama Cabang — Bulan Berjalan</h2>
+      <div id="kpiCab" class="kgrid"></div>
+      <p class="lnote" style="margin:10px 0 0">Bar = pencapaian vs target bulan penuh · Badge = pace vs target berjalan (proporsional hari) · Satuan angka mengikuti input file.</p>
+    </div>
+    <div class="grid">
+      <div class="panel"><h2>Unit Entry: Actual vs Target per Bulan</h2><div class="chartbox"><canvas id="cPMonth"></canvas></div></div>
+      <div class="panel"><h2>Achievement % per Bulan</h2><div class="chartbox"><canvas id="cPAch"></canvas></div></div>
+    </div>
+    <div class="panel">
+      <h2 id="pWeekTitle">Mingguan Bulan Berjalan: Actual vs Target</h2>
+      <div class="chartbox"><canvas id="cPWeek"></canvas></div>
+    </div>
+  </div>
+
+  <footer>General Monitor · Perintis Perkasa Medan · Jl. H. Adam Malik No. 11<br>Data diproses lokal di browser, tidak diunggah ke mana pun · Dibangun atas fondasi T-Care Dashboard</footer>
+</div>
+
+<script>
+const MONTHS_ID=["Jan","Feb","Mar","Apr","Mei","Jun","Jul","Agu","Sep","Okt","Nov","Des"];
+const MONTHS_UP=["JAN","FEB","MAR","APR","MEI","JUN","JUL","AGU","SEP","OKT","NOV","DES"];
+const SC={Active:"#2FBF71",Sleeping:"#F2A33C",Passive:"#EB0A1E"};
+const CC={red:"#EB0A1E",green:"#2FBF71",amber:"#F2A33C",blue:"#4C9AFF",purple:"#9B7EDE",teal:"#2DD4BF",dim:"#8B919E"};
+const PAL=[CC.blue,CC.green,CC.amber,CC.purple,CC.teal,CC.red,"#F472B6","#A3E635","#60A5FA","#FB923C"];
+let DATA=null,MRA=null,PERF=null,KPIS=null,charts={},actionTab="P1",mTab="BOC",currentList=[],mCurrentList=[];
+
+function toDate(v){
+  if(v==null||v==="")return null;
+  if(v instanceof Date)return isNaN(v)?null:v;
+  if(typeof v==="number"){const d=new Date(Math.round((v-25569)*86400*1000));return isNaN(d)?null:d;}
+  const d=new Date(v);return isNaN(d)?null:d;
+}
+const fmtDate=d=>d?String(d.getDate()).padStart(2,"0")+" "+MONTHS_ID[d.getMonth()]+" "+d.getFullYear():"-";
+const monthKey=d=>d?d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0"):null;
+const monthLabel=k=>{const[y,m]=k.split("-");return MONTHS_ID[+m-1]+" "+y.slice(2);};
+const pct=(n,d)=>d?((n/d)*100).toFixed(1):"0.0";
+const idn=n=>Number(n||0).toLocaleString("id-ID");
+const norm=s=>String(s==null?"":s).replace(/\s+/g," ").trim().toLowerCase();
+const TT={backgroundColor:"#1E222A",borderColor:"#2A2F39",borderWidth:1,titleColor:"#E8EAEE",bodyColor:"#E8EAEE",padding:10};
+Chart.defaults.color="#8B919E";Chart.defaults.font.family="'Segoe UI',system-ui,sans-serif";
+Chart.defaults.scale.grid.color="#22262F";Chart.defaults.scale.grid.drawBorder=false;
+
+function mkChart(id,cfg){const el=document.getElementById(id);if(!el)return;if(charts[id])charts[id].destroy();charts[id]=new Chart(el,cfg);}
+
+/* ====== RETENSI ====== */
+function normalizeRow(r,source){
+  const get=(...keys)=>{for(const k of keys){if(r[k]!==undefined&&r[k]!==null&&r[k]!=="")return r[k];}return null;};
+  return{
+    source,
+    vin:get("Vin","VIN"),
+    cabang:String(get("'Area'[Nama Cabang]","Nama Cabang","Last Service Branch")||"-").trim(),
+    model:String(get("Model")||"-").trim(),
+    custType:String(get("Customer Type")||"-").trim(),
+    expStatus:String(get("Exp Status")||"-").trim(),
+    punctual:String(get("Last Service Punctual")||"-").trim(),
+    lastStatus:String(get("Last Service Status")||"-").trim(),
+    lastDate:toDate(get("Last Service Date")),
+    status:String(get("Passive/Active")||"-").trim(),
+    nextJob:get("Next Service Job"),
+    nextDate:toDate(get("Next Service Date (Suggest)","Next Service Date (Fixed)")),
+    priority:Number(get("Reminder Priority (New)"))||null,
+    outlet:String(get("Outlet Penjual")||"").trim()
+  };
+}
+
+/* ====== MRA (sheet WORKSHEET) ====== */
+function parseMRA(ws){
+  const rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:null});
+  let hi=-1;
+  for(let i=0;i<Math.min(rows.length,20);i++){
+    const r=rows[i]||[];
+    if(r.some(c=>norm(c)==="kategori")&&r.some(c=>norm(c).includes("rangka"))){hi=i;break;}
+  }
+  if(hi<0)return null;
+  const hdr=rows[hi].map(norm);
+  const col=(...subs)=>{for(const s of subs){const i=hdr.findIndex(h=>h.includes(s));if(i>=0)return i;}return -1;};
+  const ix={
+    kat:col("kategori"),prio:col("priority"),polisi:col("no. polisi"),nama:col("nama pelanggan"),
+    model:col("model"),nextSBE:col("reminder next sbe"),
+    tglRem:col("tgl reminder"),conn:col("connected (1)"),cont:col("contacted"),nonboc:col("non boc"),
+    boc:col("boc (isi angka"),bocTgl:col("boc (isi tanggal"),show:col("boc show"),
+    walkin:col("walk-in"),ket:col("keterangan reminder"),ketCall:col("keterangan call")
+  };
+  const recs=[];
+  for(let i=hi+1;i<rows.length;i++){
+    const r=rows[i]||[];
+    if(ix.kat<0||r[ix.kat]==null||String(r[ix.kat]).trim()==="")continue;
+    const g=j=>j>=0?r[j]:null;
+    const one=j=>{const v=g(j);return v===1||v==="1"||v===1.0;};
+    recs.push({
+      kat:String(g(ix.kat)).trim(),prio:Number(g(ix.prio))||null,
+      polisi:g(ix.polisi)||"-",nama:g(ix.nama)||"-",model:g(ix.model)||"-",
+      nextSBE:g(ix.nextSBE)||"-",tglRem:toDate(g(ix.tglRem)),
+      connected:one(ix.conn),contacted:one(ix.cont),nonboc:one(ix.nonboc),
+      boc:one(ix.boc),bocTgl:toDate(g(ix.bocTgl)),show:one(ix.show),
+      ket:g(ix.ket)||g(ix.ketCall)||""
+    });
+  }
+  return recs.length?recs:null;
+}
+
+function parseKPIBlocks(rows){
+  const VALID={CPUS:1,TMO:1,PART:1,REV:1};
+  const main={},fm={};
+  for(const r of rows){
+    if(!r)continue;
+    for(let i=0;i<r.length;i++){
+      const lbl=String(r[i]||"").trim().toUpperCase().replace(/\.+$/,"");
+      if(!VALID[lbl])continue;
+      const nums=[];
+      for(let j=i+1;j<r.length;j++){
+        const cell=r[j];
+        const nl=String(cell||"").trim().toUpperCase().replace(/\.+$/,"");
+        if(VALID[nl])break;
+        if(typeof cell==="number"&&isFinite(cell))nums.push(cell);
+      }
+      if(nums.length>=6&&!main[lbl])main[lbl]={tgtBln:nums[0],tgtHari:nums[1],actual:nums[2],actHari:nums[3],selisih:nums[4],pace:nums[5]};
+      else if(nums.length>=2&&nums.length<6&&Math.abs(nums[0])<2&&!fm[lbl])fm[lbl]={pctFM:nums[0],sisa:nums[1]};
+    }
+  }
+  const NAMES={CPUS:"CPUS (Unit Entry)",TMO:"TMO Beli",PART:"Revenue Part",REV:"Revenue Total"};
+  const out=[];
+  for(const k of ["CPUS","TMO","PART","REV"]){
+    if(main[k])out.push({key:k,name:NAMES[k],...main[k],pctFM:fm[k]?fm[k].pctFM:null,sisa:fm[k]?fm[k].sisa:null});
+  }
+  return out.length?out:null;
+}
+
+/* ====== PERFORMANCE BENGKEL ====== */
+function parsePerf(ws){
+  const rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:null});
+  KPIS=parseKPIBlocks(rows);
+  let mCol=-1;
+  for(const r of rows){if(!r)continue;const i=r.findIndex(c=>MONTHS_UP.includes(String(c||"").trim().toUpperCase()));if(i>=0){mCol=i;break;}}
+  if(mCol<0)return null;
+  let wActual=[],wTgt=[],avgDayCol=-1,sumCol=-1,tgtCol=-1;
+  for(const r of rows.slice(0,6)){
+    if(!r)continue;
+    r.forEach((c,i)=>{
+      const v=norm(c);
+      if(/^w[1-5]$/.test(v)){if(wActual.length<5)wActual.push(i);else if(wTgt.length<5)wTgt.push(i);}
+      if(v==="avg/ day"&&avgDayCol<0)avgDayCol=i;
+      if(v.includes("sum")&&sumCol<0)sumCol=i;
+      if(v.includes("tgt fm")&&tgtCol<0)tgtCol=i;
+    });
+    if(sumCol>=0&&tgtCol>=0&&wActual.length===5)break;
+  }
+  const months=[];
+  for(const r of rows){
+    if(!r)continue;
+    const m=String(r[mCol]||"").trim().toUpperCase();
+    const mi=MONTHS_UP.indexOf(m);
+    if(mi<0)continue;
+    const num=j=>(j>=0&&r[j]!=null)?(Number(r[j])||0):0;
+    const weekly=wActual.length===5?wActual.map(num):[0,0,0,0,0];
+    const tgtWeekly=wTgt.length===5?wTgt.map(num):[0,0,0,0,0];
+    months.push({
+      name:MONTHS_ID[mi],weekly,tgtWeekly,
+      avgDay:num(avgDayCol),
+      actual:sumCol>=0?num(sumCol):weekly.reduce((a,b)=>a+b,0),
+      tgt:num(tgtCol)
+    });
+  }
+  return months.length?months:null;
+}
+
+/* ====== PARSE WORKBOOK ====== */
+function parseBuffer(buf,label){
+  const wb=XLSX.read(buf,{cellDates:true});
+  const out=[];MRA=null;PERF=null;KPIS=null;
+  for(const name of wb.SheetNames){
+    const n=name.toLowerCase();
+    if(n.includes("worksheet")){MRA=parseMRA(wb.Sheets[name]);continue;}
+    if(n.includes("performance")){PERF=parsePerf(wb.Sheets[name]);continue;}
+    if(n.includes("mra activity")||n.includes("progress"))continue;
+    const source=n.includes("other")?"Other Dealer":"NCS";
+    const json=XLSX.utils.sheet_to_json(wb.Sheets[name],{range:2,defval:null});
+    json.forEach(r=>{const x=normalizeRow(r,source);if(x.vin)out.push(x);});
+  }
+  if(!out.length&&!MRA&&!PERF)throw new Error("Tidak ada data terbaca. Pastikan format file sesuai.");
+  DATA=out;
+  document.getElementById("fileMeta").textContent=label+" · "+idn(out.length)+" unit retensi"+(MRA?" · "+idn(MRA.length)+" DB MRA":"");
+  fillFilter("fCabang",[...new Set(out.map(r=>r.cabang))].sort(),"Semua Cabang");
+  fillFilter("fCust",[...new Set(out.map(r=>r.custType))].filter(Boolean).sort(),"Semua Tipe Customer");
+  fillFilter("fModel",[...new Set(out.map(r=>r.model))].filter(Boolean).sort(),"Semua Model");
+  fillFilter("fExp",[...new Set(out.map(r=>r.expStatus))].filter(Boolean).sort(),"Semua Exp Status");
+  document.getElementById("uploadScreen").classList.add("hidden");
+  document.getElementById("dash").classList.remove("hidden");
+  document.getElementById("nav-mra").style.display=MRA?"":"none";
+  document.getElementById("nav-perf").style.display=PERF?"":"none";
+  renderOverview();
+  render();
+  if(MRA)renderMRA();
+  if(PERF)renderPerf();
+}
+
+async function parseFile(file){
+  const errEl=document.getElementById("errMsg");errEl.textContent="";
+  try{const buf=await file.arrayBuffer();parseBuffer(buf,file.name);}
+  catch(e){errEl.textContent=e.message||"Gagal membaca file.";}
+}
+
+async function autoLoad(){
+  const dz=document.getElementById("dropzone");
+  const p=dz.querySelector("p");const orig=p.innerHTML;
+  p.textContent="Memuat data terbaru…";
+  for(const fn of ["update.xlsx","update%20.xlsx","data.xlsx"]){
+    try{
+      const res=await fetch(fn+"?t="+Date.now());
+      if(!res.ok)continue;
+      const buf=await res.arrayBuffer();
+      const lm=res.headers.get("last-modified");
+      parseBuffer(buf,"Data resmi"+(lm?" · update "+fmtDate(new Date(lm)):""));
+      return;
+    }catch(e){}
+  }
+  p.innerHTML=orig;
+}
+document.addEventListener("DOMContentLoaded",autoLoad);
+
+/* ====== NAV ====== */
+function setView(v){
+  ["over","ret","mra","perf"].forEach(x=>{
+    const el=document.getElementById("view-"+x);if(el)el.classList.toggle("hidden",x!==v);
+    const nb=document.getElementById("nav-"+x);if(nb)nb.classList.toggle("on",x===v);
+  });
+}
+function fillFilter(id,vals,allLabel){
+  const sel=document.getElementById(id);sel.innerHTML="<option value='ALL'>"+allLabel+"</option>";
+  vals.forEach(v=>{const o=document.createElement("option");o.value=v;o.textContent=v;sel.appendChild(o);});
+}
+function kpiCard(num,lbl,sub,accent){
+  return "<div class='kpi' style='--accent:"+(accent||CC.dim)+"'><div class='num'"+(accent?" style='color:"+accent+"'":"")+">"+num+"</div><div class='lbl'>"+lbl+"</div>"+(sub?"<div class='sub2'>"+sub+"</div>":"")+"</div>";
+}
+
+/* ====== OVERVIEW ====== */
+function renderOverview(){
+  const d=DATA||[];
+  const tot=d.length;
+  const active=d.filter(r=>r.status==="Active").length;
+  const sleep=d.filter(r=>r.status==="Sleeping").length;
+  const pass=d.filter(r=>r.status==="Passive").length;
+  const conq=d.filter(r=>r.source==="Other Dealer").length;
+  const expSoon=d.filter(r=>/will exp/i.test(r.expStatus)).length;
+  const p1=d.filter(r=>r.priority===1).length;
+  const retRate=tot?(active/tot*100):0;
+  document.getElementById("overKpi").innerHTML=
+    kpiCard(idn(tot),"Total Database",null,CC.blue)+
+    kpiCard(retRate.toFixed(1)+"%","Retensi Aktif",idn(active)+" unit",CC.green)+
+    kpiCard(idn(sleep),"Sleeping (Peluang)","bisa diaktivasi",CC.amber)+
+    kpiCard(idn(pass),"Passive (Lost)","sudah lepas",CC.red)+
+    kpiCard(idn(expSoon),"Free Service Mau Habis","urgent reminder",CC.purple)+
+    kpiCard(idn(conq),"Conquest Dealer Lain","servis di kita",CC.teal);
+
+  // insight otomatis
+  const ins=[];
+  const topCab=topCount(d.filter(r=>r.status==="Sleeping").map(r=>r.cabang));
+  if(topCab)ins.push("Cabang <b>"+topCab[0]+"</b> punya <b>"+idn(topCab[1])+"</b> unit Sleeping terbanyak — peluang aktivasi terbesar.");
+  ins.push("<b>"+idn(p1)+"</b> unit Priority 1 wajib ditelpon duluan; ini antrian aksi paling tajam hari ini.");
+  if(expSoon)ins.push("<b>"+idn(expSoon)+"</b> unit free service-nya hampir/akan habis — kejar sebelum hangus, ini revenue yang mudah lepas.");
+  const punctRate=tot?(d.filter(r=>r.punctual==="Punctual").length/tot*100):0;
+  ins.push("Disiplin servis pelanggan di <b>"+punctRate.toFixed(0)+"%</b> Punctual — sisanya butuh edukasi interval.");
+  if(MRA){const boc=MRA.filter(r=>r.boc).length,called=MRA.filter(r=>r.tglRem).length;ins.push("MRA: <b>"+idn(called)+"</b> sudah ditelpon, menghasilkan <b>"+idn(boc)+"</b> BOC (booking).");}
+  document.getElementById("insightList").innerHTML=ins.map(x=>"<li>"+x+"</li>").join("");
+
+  mkChart("cOStatus",{type:"doughnut",
+    data:{labels:["Active","Sleeping","Passive"],datasets:[{data:[active,sleep,pass],backgroundColor:[SC.Active,SC.Sleeping,SC.Passive],borderWidth:0}]},
+    options:{maintainAspectRatio:false,cutout:"64%",plugins:{legend:{position:"bottom"},tooltip:TT}}});
+
+  const expOrder=["Will Exp This Month","Will Exp Next Month","Will Expired 2026","Not Yet Expired","Expired"];
+  const expC={};d.forEach(r=>{expC[r.expStatus]=(expC[r.expStatus]||0)+1;});
+  const ek=expOrder.filter(k=>expC[k]).concat(Object.keys(expC).filter(k=>!expOrder.includes(k)));
+  const ecol={"Will Exp This Month":CC.red,"Will Exp Next Month":CC.amber,"Will Expired 2026":CC.purple,"Not Yet Expired":CC.green,"Expired":CC.dim};
+  mkChart("cOExp",{type:"bar",
+    data:{labels:ek,datasets:[{data:ek.map(k=>expC[k]),backgroundColor:ek.map(k=>ecol[k]||CC.blue),borderRadius:4}]},
+    options:{maintainAspectRatio:false,indexAxis:"y",plugins:{legend:{display:false},tooltip:TT}}});
+
+  // Health score per cabang
+  const byCab={};
+  d.forEach(r=>{const c=r.cabang||"-";if(!byCab[c])byCab[c]={a:0,s:0,p:0,t:0};byCab[c].t++;if(r.status==="Active")byCab[c].a++;else if(r.status==="Sleeping")byCab[c].s++;else if(r.status==="Passive")byCab[c].p++;});
+  const cards=Object.entries(byCab).filter(([,v])=>v.t>=20).map(([c,v])=>{
+    const raw=(v.a*1.0+v.s*0.4-v.p*0.5)/v.t;
+    const score=Math.max(0,Math.min(100,Math.round(raw*100)));
+    return{c,v,score};
+  }).sort((a,b)=>b.score-a.score).slice(0,8);
+  document.getElementById("healthGrid").innerHTML=cards.map(({c,v,score})=>{
+    const col=score>=60?CC.green:(score>=40?CC.amber:CC.red);
+    return "<div class='hcard' style='--accent:"+col+"'><div class='hn'>"+c+"</div>"+
+      "<div class='hscore' style='color:"+col+"'>"+score+"</div>"+
+      "<div class='hsub'><b>"+idn(v.t)+"</b> unit · "+
+      "<span class='sptr' style='background:"+SC.Active+"'></span>"+idn(v.a)+" aktif · "+
+      "<span class='sptr' style='background:"+SC.Sleeping+"'></span>"+idn(v.s)+" sleep · "+
+      "<span class='sptr' style='background:"+SC.Passive+"'></span>"+idn(v.p)+" passive</div></div>";
+  }).join("");
+}
+function topCount(arr){const m={};arr.forEach(x=>{if(x&&x!=="-")m[x]=(m[x]||0)+1;});const e=Object.entries(m).sort((a,b)=>b[1]-a[1]);return e.length?e[0]:null;}
+
+/* ====== RENDER RETENSI ====== */
+function filtered(){
+  const s=document.getElementById("fSource").value,c=document.getElementById("fCabang").value,
+        cu=document.getElementById("fCust").value,m=document.getElementById("fModel").value,e=document.getElementById("fExp").value;
+  return (DATA||[]).filter(r=>(s==="ALL"||r.source===s)&&(c==="ALL"||r.cabang===c)&&(cu==="ALL"||r.custType===cu)&&(m==="ALL"||r.model===m)&&(e==="ALL"||r.expStatus===e));
+}
+function render(){
+  const d=filtered();const tot=d.length;
+  const active=d.filter(r=>r.status==="Active").length;
+  const sleep=d.filter(r=>r.status==="Sleeping").length;
+  const pass=d.filter(r=>r.status==="Passive").length;
+  const p1=d.filter(r=>r.priority===1).length;
+  const conq=d.filter(r=>r.source==="Other Dealer").length;
+  const retRate=tot?(active/tot*100):0;
+  document.getElementById("retKpi").innerHTML=
+    kpiCard(idn(tot),"Total Unit",null,CC.blue)+
+    kpiCard(retRate.toFixed(1)+"%","Retensi Aktif",null,CC.green)+
+    kpiCard(idn(sleep),"Sleeping (Peluang)",null,CC.amber)+
+    kpiCard(idn(pass),"Passive (Lost)",null,CC.red)+
+    kpiCard(idn(p1),"Priority 1 — Telpon Dulu",null,CC.blue)+
+    kpiCard(idn(conq),"Conquest Dealer Lain",null,CC.purple);
+
+  // funnel
+  const fb=document.getElementById("funnelBar");
+  const stages=[["Total",tot,CC.dim],["Active",active,SC.Active],["Sleeping",sleep,SC.Sleeping],["Passive",pass,SC.Passive]];
+  fb.innerHTML=stages.slice(1).map(([l,n,col])=>"<div style='flex:"+Math.max(n,1)+";background:"+col+"'>"+l+" "+idn(n)+"</div>").join("");
+  document.getElementById("funnelNote").innerHTML="Dari <b>"+idn(tot)+"</b> unit: "+pct(active,tot)+"% masih aktif, "+pct(sleep,tot)+"% sleeping (perlu reminder), "+pct(pass,tot)+"% passive (sulit kembali).";
+
+  mkChart("cStatus",{type:"doughnut",
+    data:{labels:["Active","Sleeping","Passive"],datasets:[{data:[active,sleep,pass],backgroundColor:[SC.Active,SC.Sleeping,SC.Passive],borderWidth:0}]},
+    options:{maintainAspectRatio:false,cutout:"62%",plugins:{legend:{position:"bottom"},tooltip:TT}}});
+
+  const due={};d.forEach(r=>{const k=monthKey(r.nextDate);if(k)due[k]=(due[k]||0)+1;});
+  const dk=Object.keys(due).sort().slice(0,12);
+  mkChart("cDue",{type:"bar",
+    data:{labels:dk.map(monthLabel),datasets:[{data:dk.map(k=>due[k]),backgroundColor:CC.blue,borderRadius:4}]},
+    options:{maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:TT}}});
+
+  const cab={};d.forEach(r=>{const c=r.cabang||"-";if(!cab[c])cab[c]={a:0,t:0};cab[c].t++;if(r.status==="Active")cab[c].a++;});
+  const ck=Object.entries(cab).filter(([,v])=>v.t>=10).sort((a,b)=>b[1].t-a[1].t).slice(0,10);
+  mkChart("cCabang",{type:"bar",
+    data:{labels:ck.map(x=>x[0].length>22?x[0].slice(0,20)+"…":x[0]),datasets:[
+      {label:"Active",data:ck.map(x=>x[1].a),backgroundColor:SC.Active,borderRadius:3},
+      {label:"Total",data:ck.map(x=>x[1].t-x[1].a),backgroundColor:"#3A4150",borderRadius:3}]},
+    options:{maintainAspectRatio:false,indexAxis:"y",scales:{x:{stacked:true},y:{stacked:true,ticks:{font:{size:10}}}},plugins:{legend:{position:"bottom"},tooltip:TT}}});
+
+  const punc={};d.forEach(r=>{const k=r.punctual||"-";punc[k]=(punc[k]||0)+1;});
+  const pk=Object.keys(punc);
+  mkChart("cPunc",{type:"doughnut",
+    data:{labels:pk,datasets:[{data:pk.map(k=>punc[k]),backgroundColor:pk.map(k=>k==="Punctual"?CC.green:(k==="Not Punctual"?CC.red:CC.dim)),borderWidth:0}]},
+    options:{maintainAspectRatio:false,cutout:"62%",plugins:{legend:{position:"bottom"},tooltip:TT}}});
+
+  const mod={};d.forEach(r=>{const k=r.model||"-";if(k!=="-")mod[k]=(mod[k]||0)+1;});
+  const mk=Object.entries(mod).sort((a,b)=>b[1]-a[1]).slice(0,10);
+  mkChart("cModel",{type:"bar",
+    data:{labels:mk.map(x=>x[0]),datasets:[{data:mk.map(x=>x[1]),backgroundColor:PAL,borderRadius:4}]},
+    options:{maintainAspectRatio:false,indexAxis:"y",scales:{y:{ticks:{font:{size:10}}}},plugins:{legend:{display:false},tooltip:TT}}});
+
+  const prio={};d.forEach(r=>{if(r.priority)prio[r.priority]=(prio[r.priority]||0)+1;});
+  const prk=Object.keys(prio).sort((a,b)=>a-b);
+  mkChart("cPrio",{type:"bar",
+    data:{labels:prk.map(k=>"Prio "+k),datasets:[{data:prk.map(k=>prio[k]),backgroundColor:prk.map(k=>k==="1"?CC.red:k==="2"?CC.amber:CC.blue),borderRadius:4}]},
+    options:{maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:TT}}});
+
+  renderList();
+}
+function setTab(t){actionTab=t;document.querySelectorAll("[data-tab]").forEach(b=>b.classList.toggle("on",b.dataset.tab===t));renderList();}
+function renderList(){
+  const d=filtered();let list,note;
+  if(actionTab==="P1"){list=d.filter(r=>r.priority===1).sort((a,b)=>(a.nextDate?.getTime()||Infinity)-(b.nextDate?.getTime()||Infinity));note="Priority 1 — paling mendesak ditelpon, urut jatuh tempo";}
+  else if(actionTab==="SLEEP"){list=d.filter(r=>r.status==="Sleeping").sort((a,b)=>(a.priority||9)-(b.priority||9));note="Sleeping — peluang aktivasi, urut priority";}
+  else{list=d.filter(r=>/will exp/i.test(r.expStatus)).sort((a,b)=>(a.priority||9)-(b.priority||9));note="Free service hampir habis — kejar sebelum hangus";}
+  currentList=list.slice(0,300);
+  document.getElementById("listNote").textContent=currentList.length+" baris ditampilkan (maks 300) · "+note;
+  document.getElementById("tbody").innerHTML=currentList.map(r=>{
+    const sc=SC[r.status]||CC.dim;
+    return "<tr><td class='vin'>"+(r.vin||"-")+"</td><td class='nw'>"+r.source+"</td><td class='nw'>"+r.cabang+"</td><td class='nw'>"+r.model+
+    "</td><td class='nw'>"+r.custType+"</td><td><span class='badge' style='background:"+sc+"'>"+r.status+"</span></td>"+
+    "<td class='nw' style='color:"+(r.punctual==="Punctual"?CC.green:CC.red)+"'>"+r.punctual+"</td>"+
+    "<td class='nw'>"+fmtDate(r.lastDate)+"</td><td class='nw'>"+(r.nextJob||"-")+"</td><td class='nw'>"+fmtDate(r.nextDate)+
+    "</td><td style='text-align:center;font-weight:700'>"+(r.priority??"-")+"</td><td class='nw'>"+r.expStatus+"</td></tr>";
+  }).join("");
+}
+function csvOut(head,rows,name){
+  const esc=v=>'"'+String(v??"").replace(/"/g,'""')+'"';
+  const csv=[head.map(esc).join(","),...rows.map(r=>r.map(esc).join(","))].join("\n");
+  const blob=new Blob(["\ufeff"+csv],{type:"text/csv;charset=utf-8"});
+  const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=name+".csv";a.click();
+}
+function downloadCSV(){
+  const head=["VIN","Sumber","Cabang","Model","Customer","Status","Punctual","Servis Terakhir","Next Job","Jatuh Tempo","Priority","Exp Status"];
+  csvOut(head,currentList.map(r=>[r.vin,r.source,r.cabang,r.model,r.custType,r.status,r.punctual,fmtDate(r.lastDate),r.nextJob||"-",fmtDate(r.nextDate),r.priority??"-",r.expStatus]),"retensi-"+actionTab.toLowerCase());
+}
+
+/* ====== RENDER MRA ====== */
+function renderMRA(){
+  const d=MRA;const t=d.length;
+  const called=d.filter(r=>r.tglRem).length;
+  const contacted=d.filter(r=>r.contacted).length;
+  const boc=d.filter(r=>r.boc).length;
+  const show=d.filter(r=>r.show).length;
+  document.getElementById("mraKpi").innerHTML=
+    kpiCard(idn(t),"Total Database",null,CC.dim)+
+    kpiCard(idn(called),"Sudah Ditelpon",pct(called,t)+"% dari database",CC.blue)+
+    kpiCard(idn(contacted),"Contacted",pct(contacted,called)+"% dari telpon",CC.purple)+
+    kpiCard(idn(boc),"BOC (Booking)",pct(boc,contacted)+"% dari contacted",CC.green)+
+    kpiCard(idn(show),"BOC Show (Datang)",pct(show,boc)+"% dari BOC",CC.amber)+
+    kpiCard(idn(t-called),"Sisa Belum Ditelpon",null,CC.red);
+
+  const stages=[["Database",t,CC.dim],["Ditelpon",called,CC.blue],["Contacted",contacted,CC.purple],["BOC",boc,CC.green],["BOC Show",show,CC.amber]];
+  const wrap=document.getElementById("mraFunnel");wrap.innerHTML="";
+  stages.forEach(([lbl,n,color],i)=>{
+    const prev=i?stages[i-1][1]:n;
+    const row=document.createElement("div");row.className="mstage";
+    row.innerHTML="<div class='mlbl'>"+lbl+"</div><div class='mtrack'><div class='mfill' style='width:"+Math.max((n/Math.max(t,1))*100,3)+"%;background:"+color+"'>"+idn(n)+"</div></div><div class='mpct'>"+(i?pct(n,prev)+"% dari atas":"100%")+"</div>";
+    wrap.appendChild(row);
+  });
+
+  const td={};d.forEach(r=>{if(r.tglRem){const k=r.tglRem.toISOString().slice(0,10);td[k]=(td[k]||0)+1;}});
+  const tk=Object.keys(td).sort();
+  mkChart("cMTrend",{type:"bar",
+    data:{labels:tk.map(k=>fmtDate(new Date(k)).slice(0,6)),datasets:[{data:tk.map(k=>td[k]),backgroundColor:CC.blue,borderRadius:4}]},
+    options:{maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:TT}}});
+
+  const rs={};d.forEach(r=>{const k=String(r.ket||"").trim();if(k&&!r.boc)rs[k]=(rs[k]||0)+1;});
+  const rk=Object.entries(rs).sort((a,b)=>b[1]-a[1]).slice(0,8);
+  mkChart("cMReason",{type:"bar",
+    data:{labels:rk.map(x=>x[0].length>30?x[0].slice(0,28)+"…":x[0]),datasets:[{data:rk.map(x=>x[1]),backgroundColor:CC.red,borderRadius:4}]},
+    options:{maintainAspectRatio:false,indexAxis:"y",scales:{y:{ticks:{font:{size:10}}}},plugins:{legend:{display:false},tooltip:TT}}});
+
+  const ks={};d.forEach(r=>{ks[r.kat]=(ks[r.kat]||0)+1;});
+  const kk=Object.keys(ks);
+  mkChart("cMKat",{type:"doughnut",
+    data:{labels:kk,datasets:[{data:kk.map(k=>ks[k]),backgroundColor:PAL,borderWidth:0}]},
+    options:{maintainAspectRatio:false,cutout:"62%",plugins:{legend:{position:"bottom"},tooltip:TT}}});
+
+  mkChart("cMProg",{type:"bar",
+    data:{labels:kk,datasets:[
+      {label:"Sudah ditelpon",data:kk.map(k=>d.filter(r=>r.kat===k&&r.tglRem).length),backgroundColor:CC.green},
+      {label:"Belum",data:kk.map(k=>d.filter(r=>r.kat===k&&!r.tglRem).length),backgroundColor:"#3A4150"}]},
+    options:{maintainAspectRatio:false,scales:{x:{stacked:true},y:{stacked:true}},plugins:{legend:{position:"bottom"},tooltip:TT}}});
+  renderMList();
+}
+function setMTab(tab){mTab=tab;document.querySelectorAll("[data-mtab]").forEach(b=>b.classList.toggle("on",b.dataset.mtab===tab));renderMList();}
+function renderMList(){
+  let list;
+  if(mTab==="BOC")list=MRA.filter(r=>r.boc).sort((a,b)=>((a.bocTgl?a.bocTgl.getTime():Infinity)-(b.bocTgl?b.bocTgl.getTime():Infinity)));
+  else list=MRA.filter(r=>!r.tglRem&&(r.prio||9)<=2).sort((a,b)=>(a.prio||9)-(b.prio||9));
+  mCurrentList=list.slice(0,300);
+  document.getElementById("mListNote").textContent=mCurrentList.length+" baris ditampilkan (maks 300)"+(mTab==="BOC"?" · urut tanggal booking":" · Priority 1–2 yang belum disentuh");
+  document.getElementById("mtbody").innerHTML=mCurrentList.map(r=>
+    "<tr><td class='nw' style='font-weight:700'>"+r.polisi+"</td><td>"+r.nama+"</td><td>"+r.model+"</td><td class='nw'>"+r.kat+
+    "</td><td style='text-align:center'>"+(r.prio??"-")+"</td><td class='nw'>"+r.nextSBE+"</td><td class='nw'>"+fmtDate(r.tglRem)+
+    "</td><td class='nw' style='font-weight:700;color:"+(r.bocTgl?CC.green:CC.dim)+"'>"+fmtDate(r.bocTgl)+"</td><td>"+(r.ket||"-")+"</td></tr>"
+  ).join("");
+}
+function downloadMCSV(){
+  const head=["No. Polisi","Nama","Model","Kategori","Priority","Next SBE","Tgl Reminder","Tgl BOC","Keterangan"];
+  csvOut(head,mCurrentList.map(r=>[r.polisi,r.nama,r.model,r.kat,r.prio??"-",r.nextSBE,fmtDate(r.tglRem),fmtDate(r.bocTgl),r.ket||"-"]),"mra-"+mTab.toLowerCase());
+}
+
+/* ====== RENDER PERFORMANCE ====== */
+function renderPerf(){
+  const p=PERF;
+  const kp=document.getElementById("kpiCabPanel"),kw=document.getElementById("kpiCab");
+  if(KPIS){
+    kp.classList.remove("hidden");
+    kw.innerHTML=KPIS.map(k=>{
+      const pacePct=k.pace!=null?k.pace*100:null;
+      const fmPct=k.pctFM!=null?Math.min(k.pctFM*100,100):0;
+      const paceColor=pacePct==null?CC.dim:(pacePct>=100?CC.green:(pacePct>=90?CC.amber:CC.red));
+      return "<div class='kcard'>"+
+        "<div class='kt'>"+k.name+"</div>"+
+        "<div class='kn'>"+idn(k.actual)+"</div>"+
+        "<div class='kbar'><div class='kfill' style='width:"+fmPct+"%;background:"+paceColor+"'></div></div>"+
+        "<div class='ks'>Target bulan: <b>"+idn(k.tgtBln)+"</b>"+(k.pctFM!=null?" · tercapai "+(k.pctFM*100).toFixed(1)+"%":"")+
+        (k.sisa!=null?"<br>Sisa kejar: <b>"+idn(k.sisa)+"</b>":"")+
+        "<br>Per hari: "+idn(k.actHari)+" vs target "+idn(k.tgtHari)+"</div>"+
+        (pacePct!=null?"<span class='kpace' style='background:"+paceColor+"'>Pace "+pacePct.toFixed(0)+"%"+(k.selisih!=null?" ("+(k.selisih>0?"+":"")+idn(k.selisih)+")":"")+"</span>":"")+
+        "</div>";
+    }).join("");
+  }else kp.classList.add("hidden");
+  const done=p.filter(m=>m.actual>0);
+  const ytd=done.reduce((s,m)=>s+m.actual,0);
+  const ytdTgt=done.reduce((s,m)=>s+m.tgt,0);
+  const cur=done.length?done[done.length-1]:null;
+  const ach=ytdTgt?(ytd/ytdTgt*100):0;
+  document.getElementById("perfKpi").innerHTML=
+    kpiCard(idn(ytd),"Unit Entry YTD",null,CC.blue)+
+    kpiCard(idn(ytdTgt),"Target YTD",null,CC.dim)+
+    kpiCard(ach.toFixed(1)+"%","Achievement YTD",null,ach>=100?CC.green:(ach>=85?CC.amber:CC.red))+
+    (cur?kpiCard(idn(cur.actual),"Unit Entry "+cur.name,"Avg/hari "+idn(cur.avgDay)+" · "+pct(cur.actual,cur.tgt)+"% target",CC.purple):"");
+
+  mkChart("cPMonth",{type:"bar",
+    data:{labels:p.map(m=>m.name),datasets:[
+      {label:"Actual",data:p.map(m=>m.actual||null),backgroundColor:CC.red,borderRadius:3},
+      {label:"Target FM",data:p.map(m=>m.tgt||null),backgroundColor:"#3A4150",borderRadius:3}]},
+    options:{maintainAspectRatio:false,plugins:{legend:{position:"bottom"},tooltip:TT}}});
+  mkChart("cPAch",{type:"line",
+    data:{labels:done.map(m=>m.name),datasets:[{label:"Achievement %",data:done.map(m=>m.tgt?+(m.actual/m.tgt*100).toFixed(1):null),borderColor:CC.green,backgroundColor:"rgba(47,191,113,.12)",fill:true,tension:.3,pointRadius:4}]},
+    options:{maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:TT},scales:{y:{suggestedMin:0,suggestedMax:120}}}});
+  if(cur){
+    document.getElementById("pWeekTitle").textContent="Mingguan "+cur.name+": Actual vs Target";
+    mkChart("cPWeek",{type:"bar",
+      data:{labels:["W1","W2","W3","W4","W5"],datasets:[
+        {label:"Actual",data:cur.weekly,backgroundColor:CC.blue,borderRadius:3},
+        {label:"Target",data:cur.tgtWeekly,backgroundColor:"#3A4150",borderRadius:3}]},
+      options:{maintainAspectRatio:false,plugins:{legend:{position:"bottom"},tooltip:TT}}});
+  }
+}
+
+function resetApp(){
+  DATA=null;MRA=null;PERF=null;KPIS=null;
+  document.getElementById("dash").classList.add("hidden");
+  document.getElementById("uploadScreen").classList.remove("hidden");
+  document.getElementById("fileInput").value="";
+}
+const dz=document.getElementById("dropzone");
+dz.addEventListener("dragover",e=>{e.preventDefault();dz.classList.add("drag");});
+dz.addEventListener("dragleave",()=>dz.classList.remove("drag"));
+dz.addEventListener("drop",e=>{e.preventDefault();dz.classList.remove("drag");if(e.dataTransfer.files[0])parseFile(e.dataTransfer.files[0]);});
+document.getElementById("fileInput").addEventListener("change",e=>{if(e.target.files[0])parseFile(e.target.files[0]);});
+</script>
+</body>
+</html>
